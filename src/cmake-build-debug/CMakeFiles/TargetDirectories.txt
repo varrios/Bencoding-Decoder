@@ -1,3 +1,3 @@
-C:/Users/lucja/Desktop/Custom-BitTorrent-Service/src/cmake-build-debug/CMakeFiles/src.dir
-C:/Users/lucja/Desktop/Custom-BitTorrent-Service/src/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/lucja/Desktop/Custom-BitTorrent-Service/src/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/lucjangackowski/Documents/git/Custom-BitTorrent-Service/src/cmake-build-debug/CMakeFiles/src.dir
+/Users/lucjangackowski/Documents/git/Custom-BitTorrent-Service/src/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/lucjangackowski/Documents/git/Custom-BitTorrent-Service/src/cmake-build-debug/CMakeFiles/rebuild_cache.dir
