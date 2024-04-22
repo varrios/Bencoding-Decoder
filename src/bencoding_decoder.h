@@ -5,13 +5,16 @@
 #include "string"
 #include <fstream>
 #include <iostream>
+#include <variant>
+#include <unordered_map>
 
 struct bencodedValue;
 
 using bencodedList = std::vector<bencodedValue>;
-using bencodedDict = std::unordered_map<std::string, bencodedValue>;
 using bencodedString = std::string;
-using bencodedInt = int;
+using bencodedInt = long long;
+using bencodedDict = std::unordered_map<bencodedString, bencodedValue>;
+
 
 struct bencodedValue {
     std::variant<bencodedList, bencodedDict, bencodedString, bencodedInt> data;
@@ -19,15 +22,14 @@ struct bencodedValue {
 
 
 struct Dictionary{
-    std::unordered_map<std::string, bencodedValue> keyValueMap;
-    bool keyFlag = true;
-    std::string lastKeySaved;
-    bencodedValue lastValueSaved;
-
+   bencodedValue data;
 };
 
 std::vector<char> readFile(const std::string& file_path);
-std::string decodeBencodedValue(const std::vector<char>& data, size_t& currentPos, Dictionary& encodedDict);
+bencodedValue decodeBencodedValue(const std::vector<char>& data, size_t& currentPos, Dictionary& decodedDataDict);
 void decodeBencodedData(const std::vector<char>& data);
+
+void printDictionary(const bencodedDict& dictionary, int indent);
+void printBencodedValue(const bencodedValue& value);
 
 #endif //SAMPLE_READ_FILE_H

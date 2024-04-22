@@ -16,7 +16,7 @@ std::vector<char> readFile(const std::string& filePath) {
     return buffer;
 }
 
-std::string decodeString(const std::vector<char>& data, size_t& currentPosition){
+bencodedString decodeString(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict){
 
     size_t stringLength = 0;
     while(data[currentPosition] != ':' && currentPosition < data.size()) {
@@ -24,18 +24,18 @@ std::string decodeString(const std::vector<char>& data, size_t& currentPosition)
         currentPosition++;
     }
     currentPosition++;
-    std::string decodedString;
+    bencodedString decodedString;
     for(size_t i = 0; i < stringLength; i++) {
         decodedString.push_back(data[currentPosition]);
         currentPosition++;
     }
-    std::cout << "Decoded string: " << decodedString << "\n";
+    //std::cout << "Decoded string: " << decodedString << "\n";
     return decodedString;
 }
 
-int decodeInteger(const std::vector<char>& data, size_t& currentPosition) {
+bencodedInt decodeInteger(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict) {
     currentPosition++;
-    int integer = 0;
+    long long integer = 0;
     bool isNegative = false;
 
     if(data[currentPosition] == '-') {
@@ -47,82 +47,134 @@ int decodeInteger(const std::vector<char>& data, size_t& currentPosition) {
         integer = integer * 10 + (data[currentPosition] - '0');
         currentPosition++;
     }
-    std::cout << "Decoded integer: " << (isNegative ? -integer : integer) << "\n";
+    //std::cout << "Decoded integer: " << (isNegative ? -integer : integer) << "\n";
     currentPosition++;
-    return isNegative ? -integer : integer;
+    return isNegative ? bencodedInt{-integer} : bencodedInt{integer};
 }
 
-std::vector<std::string> decodeList(const std::vector<char>& data, size_t& currentPosition, Dictionary& encodedDict) {
-    std::cout << "List: " << std::endl;
-    std::vector<std::string> decodedList;
+bencodedList decodeList(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict) {
+    //std::cout << "List: " << std::endl;
+    bencodedList benList;
     currentPosition++;
     while(data[currentPosition] != 'e' && currentPosition < data.size()) {
-        decodedList.push_back(decodeBencodedValue(data, currentPosition, encodedDict));
+        benList.push_back(decodeBencodedValue(data, currentPosition, decodedDataDict));
     }
     currentPosition++;
-    return decodedList;
+    return benList;
 }
 
-std::unordered_map<std::string, std::string> decodeDictionary(const std::vector<char>& data, size_t& currentPosition, Dictionary& encodedDict) {
-    std::cout << "Dictionary" << std::endl;
-    std::unordered_map<std::string, std::string> decodedDictionary;
+bencodedDict decodeDictionary(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict) {
+    //std::cout << "Dictionary" << std::endl;
+    bencodedDict decodedDictionary;
     currentPosition++;
     while(data[currentPosition] != 'e' && currentPosition < data.size()) {
-        std::string key = decodeString(data, currentPosition);
-        std::string value = decodeBencodedValue(data, currentPosition, encodedDict);
-        decodedDictionary[key] = value;
+        bencodedString benString = decodeString(data, currentPosition, decodedDataDict);
+        bencodedValue benValue = decodeBencodedValue(data, currentPosition, decodedDataDict);
+        decodedDictionary[benString] = benValue;
     }
     currentPosition++;
     return decodedDictionary;
 }
 
 
-std::string decodeBencodedValue(const std::vector<char>& data, size_t& currentPos, Dictionary& encodedDict) {
+bencodedValue decodeBencodedValue(const std::vector<char>& data, size_t& currentPos, Dictionary& decodedDataDict) {
     char c = data[currentPos];
     if(c >= '0' && c <= '9') {
-        std::string decoded = decodeString(data, currentPos);
-        if(encodedDict.keyFlag) {
-            encodedDict.lastKeySaved = decoded;
-            encodedDict.keyFlag = false;
-        }
-        else {
-            bencodedValue value;
-            value.data = bencodedString{decoded};
-            encodedDict.keyValueMap[encodedDict.lastKeySaved] = value;
-            encodedDict.keyFlag = true;
-        }
-        return decoded;
+        bencodedString benString = decodeString(data, currentPos, decodedDataDict);
+        return bencodedValue{benString};
     }
     else if(c == 'd') {
-        decodeDictionary(data, currentPos, encodedDict);
-        return "Dictionary";
+        bencodedDict benDict = decodeDictionary(data, currentPos, decodedDataDict);
+        return bencodedValue{benDict};
     }
     else if(c == 'l') {
-        decodeList(data, currentPos, encodedDict);
-        return "List";
+        bencodedList benList = decodeList(data, currentPos, decodedDataDict);
+        return bencodedValue{benList};
     }
     else if(c == 'i') {
-        int decoded = decodeInteger(data, currentPos);
-        bencodedValue value;
-        value.data = bencodedInt{decoded};
-        encodedDict.keyValueMap[encodedDict.lastKeySaved] = value;
-        encodedDict.keyFlag = true;
-        return std::to_string(decoded);
+        bencodedInt benInt = decodeInteger(data, currentPos, decodedDataDict);
+        return bencodedValue{benInt};
     }
     else {
         std::cerr << "Invalid character found in the data at position: " << currentPos << "\n";
-        return "INVALID DATA";
+        return {};
     }
 }
 
 
+void printBencodedValue(const bencodedValue& value, int indent) {
+    std::visit([&indent](const auto& arg) {
+        using T = std::decay_t<decltype(arg)>;
+        for(int i = 0; i < indent; i++) {
+            std::cout << "  ";
+        }
+        if constexpr (std::is_same_v<T, bencodedList>)
+        {
+            std::cout << "\n";
+            for(int i = 0; i < indent; i++)
+                std::cout << "  ";
+            std::cout << "[\n";
+            for (const auto& v : arg) {
+                printBencodedValue(v, indent);
+            }
+            for(int i = 0; i < indent; i++)
+                std::cout << "  ";
+            std::cout << "]\n";
+        }
+        else if constexpr (std::is_same_v<T, bencodedDict>)
+        {
+            std::cout << "\n";
+            for(int i = 0; i < indent; i++)
+                std::cout << "  ";
+            std::cout << "{\n";
+            printDictionary(arg, indent);
+            for(int i = 0; i < indent; i++)
+                std::cout << "  ";
+            std::cout << "}\n";
+        }
+        else if constexpr (std::is_same_v<T, bencodedString>)
+        {
+            std::cout << arg << "\n";
+        }
+        else if constexpr (std::is_same_v<T, bencodedInt>)
+        {
+            std::cout << arg << "\n";
+        }
+    }, value.data);
+}
+
+void printDictionary(const bencodedDict& dictionary, int indent) {
+    for (const auto& [key, value] : dictionary) {
+        for(int i = 0; i < indent; i++) {
+            std::cout << "  ";
+        }
+        std::cout << key << ": ";
+        printBencodedValue(value, indent);
+    }
+}
+
+void printRootDictionary(const Dictionary& dictionary) {
+    int depth = 1;
+    std::cout << "{\n";
+    const bencodedValue& value = dictionary.data;
+    if (const auto* dictPtr = std::get_if<bencodedDict>(&value.data)) {
+        printDictionary(*dictPtr, depth);
+    } else {
+        std::cerr << "Error: Data is not a dictionary.\n";
+    }
+    std::cout << "}\n";
+}
+
+
 void decodeBencodedData(const std::vector<char>& data) {
-    Dictionary encodedDict;
     std::cout << "Decoding bencoded data...\n";
     size_t currentPos = 0;
+    Dictionary decodedDataDict;
     while(currentPos < data.size()) {
-        std::string decoded = decodeBencodedValue(data, currentPos, encodedDict);
-        std::cout << "Decoded value: " << decoded << "\n";
+        bencodedValue benValue = decodeBencodedValue(data, currentPos, decodedDataDict);
+        decodedDataDict.data = benValue;
     }
-    std::cout << " ";
+    std::cout << std::endl;
+    printRootDictionary(decodedDataDict);
+
 }
