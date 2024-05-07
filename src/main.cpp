@@ -3,7 +3,9 @@
 #include "vector"
 
 int main() {
-    std::string filePath = R"(sample_data/corrupt.torrent)";
+    std::string filePath = R"(sample_data/puppy.torrent)";
     std::vector<char> torrentContent = readFile(filePath);
-    decodeBencodedData(torrentContent);
+    Dictionary torrentMetadataDict = decodeBencodedData(torrentContent);
+    printRootDictionary(torrentMetadataDict);
+    return 0;
 }

@@ -5,6 +5,7 @@
 #include "string"
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <variant>
 #include <unordered_map>
 
@@ -25,11 +26,26 @@ struct Dictionary{
    bencodedValue data;
 };
 
-std::vector<char> readFile(const std::string& file_path);
+std::vector<char> readFile(const std::string& filePath);
+
+bencodedString decodeString(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict);
+
+bencodedInt decodeInteger(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict);
+
+bencodedList decodeList(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict);
+
+bencodedDict decodeDictionary(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict);
+
 bencodedValue decodeBencodedValue(const std::vector<char>& data, size_t& currentPos, Dictionary& decodedDataDict);
-void decodeBencodedData(const std::vector<char>& data);
+
+void printBencodedValue(const bencodedValue& value, int indent);
 
 void printDictionary(const bencodedDict& dictionary, int indent);
-void printBencodedValue(const bencodedValue& value);
+
+void printRootDictionary(const Dictionary& dictionary);
+
+
+Dictionary decodeBencodedData(const std::vector<char>& data);
+
 
 #endif //SAMPLE_READ_FILE_H

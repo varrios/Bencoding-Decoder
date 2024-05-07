@@ -1,7 +1,4 @@
-#include <optional>
-#include <unordered_map>
 #include "bencoding_decoder.h"
-
 
 
 std::vector<char> readFile(const std::string& filePath) {
@@ -50,17 +47,6 @@ bencodedInt decodeInteger(const std::vector<char>& data, size_t& currentPosition
     //std::cout << "Decoded integer: " << (isNegative ? -integer : integer) << "\n";
     currentPosition++;
     return isNegative ? bencodedInt{-integer} : bencodedInt{integer};
-}
-
-bencodedList decodeList(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict) {
-    //std::cout << "List: " << std::endl;
-    bencodedList benList;
-    currentPosition++;
-    while(data[currentPosition] != 'e' && currentPosition < data.size()) {
-        benList.push_back(decodeBencodedValue(data, currentPosition, decodedDataDict));
-    }
-    currentPosition++;
-    return benList;
 }
 
 bencodedDict decodeDictionary(const std::vector<char>& data, size_t& currentPosition, Dictionary& decodedDataDict) {
@@ -114,8 +100,9 @@ void printBencodedValue(const bencodedValue& value, int indent) {
             for(int i = 0; i < indent; i++)
                 std::cout << "  ";
             std::cout << "[\n";
+            int newIndent = indent + 1;
             for (const auto& v : arg) {
-                printBencodedValue(v, indent);
+                printBencodedValue(v, newIndent);
             }
             for(int i = 0; i < indent; i++)
                 std::cout << "  ";
@@ -127,7 +114,8 @@ void printBencodedValue(const bencodedValue& value, int indent) {
             for(int i = 0; i < indent; i++)
                 std::cout << "  ";
             std::cout << "{\n";
-            printDictionary(arg, indent);
+            int newIndent = indent + 1;
+            printDictionary(arg, newIndent);
             for(int i = 0; i < indent; i++)
                 std::cout << "  ";
             std::cout << "}\n";
@@ -166,7 +154,7 @@ void printRootDictionary(const Dictionary& dictionary) {
 }
 
 
-void decodeBencodedData(const std::vector<char>& data) {
+Dictionary decodeBencodedData(const std::vector<char>& data) {
     std::cout << "Decoding bencoded data...\n";
     size_t currentPos = 0;
     Dictionary decodedDataDict;
@@ -174,7 +162,18 @@ void decodeBencodedData(const std::vector<char>& data) {
         bencodedValue benValue = decodeBencodedValue(data, currentPos, decodedDataDict);
         decodedDataDict.data = benValue;
     }
-    std::cout << std::endl;
-    printRootDictionary(decodedDataDict);
+    return decodedDataDict;
 
 }
+
+bencodedList decodeList(const std::vector<char> &data, size_t &currentPosition, Dictionary &decodedDataDict) {
+    //std::cout << "List: " << std::endl;
+    bencodedList benList;
+    currentPosition++;
+    while(data[currentPosition] != 'e' && currentPosition < data.size()) {
+        benList.push_back(decodeBencodedValue(data, currentPosition, decodedDataDict));
+    }
+    currentPosition++;
+    return benList;
+}
+
